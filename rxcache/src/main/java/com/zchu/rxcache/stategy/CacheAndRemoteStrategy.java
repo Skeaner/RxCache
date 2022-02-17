@@ -12,7 +12,9 @@ import java.util.Arrays;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 
 /**
@@ -36,16 +38,16 @@ public final class CacheAndRemoteStrategy implements IStrategy {
         Observable<CacheResult<T>> remote;
         if (isSync) {
             remote = RxCacheHelper.loadRemoteSync(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
+        }
+        else {
             remote = RxCacheHelper.loadRemote(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
         }
-        return Observable.concatDelayError(Arrays.asList(cache, remote))
-                .filter(new Predicate<CacheResult<T>>() {
-                    @Override
-                    public boolean test(@NonNull CacheResult<T> result) throws Exception {
-                        return result.getData() != null;
-                    }
-                });
+        return Observable.concatDelayError(Arrays.asList(cache, remote)).filter(new Predicate<CacheResult<T>>() {
+            @Override
+            public boolean test(@NonNull CacheResult<T> result) throws Exception {
+                return result.getData() != null;
+            }
+        });
     }
 
     @Override
@@ -54,15 +56,25 @@ public final class CacheAndRemoteStrategy implements IStrategy {
         Flowable<CacheResult<T>> remote;
         if (isSync) {
             remote = RxCacheHelper.loadRemoteSyncFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
+        }
+        else {
             remote = RxCacheHelper.loadRemoteFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
         }
-        return Flowable.concatDelayError(Arrays.asList(cache, remote))
-                .filter(new Predicate<CacheResult<T>>() {
-                    @Override
-                    public boolean test(@NonNull CacheResult<T> result) throws Exception {
-                        return result.getData() != null;
-                    }
-                });
+        return Flowable.concatDelayError(Arrays.asList(cache, remote)).filter(new Predicate<CacheResult<T>>() {
+            @Override
+            public boolean test(@NonNull CacheResult<T> result) throws Exception {
+                return result.getData() != null;
+            }
+        });
+    }
+
+    @Override
+    public <T> Single<CacheResult<T>> single(RxCache rxCache, String key, Single<T> source, Type type) {
+        return source.map(new Function<T, CacheResult<T>>() {
+            @Override
+            public CacheResult<T> apply(T t) throws Exception {
+                throw new RuntimeException("Single不支持CacheAndRemoteStrategy");
+            }
+        });
     }
 }

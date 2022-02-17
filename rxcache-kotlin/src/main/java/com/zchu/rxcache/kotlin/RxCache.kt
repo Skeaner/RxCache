@@ -5,6 +5,7 @@ import com.zchu.rxcache.RxCache
 import com.zchu.rxcache.data.CacheResult
 import com.zchu.rxcache.stategy.IFlowableStrategy
 import com.zchu.rxcache.stategy.IObservableStrategy
+import com.zchu.rxcache.stategy.ISingleStrategy
 import io.reactivex.*
 
 inline fun <reified T> RxCache.load(key: String): Observable<CacheResult<T>> {
@@ -19,12 +20,20 @@ inline fun <reified T> RxCache.load2Flowable(key: String, backpressureStrategy: 
     return load2Flowable(key, object : TypeToken<T>() {}.type, backpressureStrategy)
 }
 
+inline fun <reified T> RxCache.loadSingle(key: String): Single<CacheResult<T>> {
+    return load2Single<T>(key, object : TypeToken<T>() {}.type)
+}
+
 inline fun <reified T> RxCache.transformObservable(key: String, strategy: IObservableStrategy): ObservableTransformer<T, CacheResult<T>> {
     return transformObservable(key, object : TypeToken<T>() {}.type, strategy)
 }
 
 inline fun <reified T> RxCache.transformFlowable(key: String, strategy: IFlowableStrategy): FlowableTransformer<T, CacheResult<T>> {
     return transformFlowable(key, object : TypeToken<T>() {}.type, strategy)
+}
+
+inline fun <reified T> RxCache.transformSingle(key: String, strategy: ISingleStrategy): SingleTransformer<T, CacheResult<T>> {
+    return transformSingle(key, object : TypeToken<T>() {}.type, strategy)
 }
 
 
@@ -42,6 +51,14 @@ inline fun <reified T> Flowable<T>.rxCache(key: String, strategy: IFlowableStrat
 
 inline fun <reified T> Flowable<T>.rxCache(rxCache: RxCache, key: String, strategy: IFlowableStrategy): Flowable<CacheResult<T>> {
     return this.compose<CacheResult<T>>(rxCache.transformFlowable(key, object : TypeToken<T>() {}.type, strategy))
+}
+
+inline fun <reified T> Single<T>.rxCache(key: String, strategy: ISingleStrategy): Single<CacheResult<T>> {
+    return this.rxCache(RxCache.getDefault(), key, strategy)
+}
+
+inline fun <reified T> Single<T>.rxCache(rxCache: RxCache, key: String, strategy: ISingleStrategy): Single<CacheResult<T>> {
+    return this.compose<CacheResult<T>>(rxCache.transformSingle(key, object : TypeToken<T>() {}.type, strategy))
 }
 
 

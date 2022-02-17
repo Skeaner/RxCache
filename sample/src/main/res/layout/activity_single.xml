@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginLeft="16dp"
+    android:layout_marginRight="16dp"
+    android:orientation="horizontal"
+    tools:context="com.zchu.sample.MainActivity">
+
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/btn_first_remote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="优先网络" />
+
+        <Button
+            android:id="@+id/btn_first_cache"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="优先缓存" />
+
+        <Button
+            android:id="@+id/btn_first_cache_timeout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="优先缓存,5秒后超时" />
+
+        <Button
+            android:id="@+id/btn_only_remote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="仅网络，依然会缓存" />
+
+        <Button
+            android:id="@+id/btn_only_cache"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="仅加载缓存" />
+
+        <Button
+            android:id="@+id/btn_cache_and_remote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="先缓存，后网络" />
+
+        <Button
+            android:id="@+id/btn_none"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="仅网络" />
+
+        <Button
+            android:id="@+id/btn_load_cache"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="load缓存" />
+
+        <Button
+            android:id="@+id/btn_save_cache"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="save缓存" />
+        <Button
+            android:id="@+id/btn_clean_cache"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="清除缓存" />
+
+
+        <Switch
+            android:id="@+id/sw_is_async"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:checked="true"
+            android:text="异步保存缓存" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/tv_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="数据" />
+    </ScrollView>
+
+
+</LinearLayout>

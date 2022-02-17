@@ -8,6 +8,7 @@ import com.zchu.rxcache.diskconverter.IDiskConverter;
 import com.zchu.rxcache.diskconverter.SerializableDiskConverter;
 import com.zchu.rxcache.stategy.IFlowableStrategy;
 import com.zchu.rxcache.stategy.IObservableStrategy;
+import com.zchu.rxcache.stategy.ISingleStrategy;
 import com.zchu.rxcache.utils.LogUtils;
 
 import org.reactivestreams.Publisher;
@@ -28,14 +29,17 @@ import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
-
+import io.reactivex.Single;
+import io.reactivex.SingleEmitter;
+import io.reactivex.SingleOnSubscribe;
+import io.reactivex.SingleSource;
+import io.reactivex.SingleTransformer;
 
 /**
  * RxJava remote data cache processing library, support Serializable, JSON
  * 作者: 赵成柱 on 2016/9/9 0012.
  */
 public final class RxCache {
-
 
     private final CacheCore cacheCore;
 
@@ -44,12 +48,11 @@ public final class RxCache {
     @NonNull
     public static RxCache getDefault() {
         if (sDefaultRxCache == null) {
-            sDefaultRxCache = new RxCache.Builder()
-                    .appVersion(1)
-                    .diskDir(Environment.getDownloadCacheDirectory())
-                    .diskConverter(new SerializableDiskConverter())
-                    .setDebug(true)
-                    .build();
+            sDefaultRxCache = new RxCache.Builder().appVersion(1)
+                                                   .diskDir(Environment.getDownloadCacheDirectory())
+                                                   .diskConverter(new SerializableDiskConverter())
+                                                   .setDebug(true)
+                                                   .build();
 
         }
         return sDefaultRxCache;
@@ -58,11 +61,11 @@ public final class RxCache {
     public static void initializeDefault(RxCache rxCache) {
         if (sDefaultRxCache == null) {
             RxCache.sDefaultRxCache = rxCache;
-        } else {
+        }
+        else {
             LogUtils.log("You need to initialize it before using the default rxCache and only initialize it once");
         }
     }
-
 
     private RxCache(CacheCore cacheCore) {
         this.cacheCore = cacheCore;
@@ -76,7 +79,9 @@ public final class RxCache {
         return transformObservable(key, type, strategy);
     }
 
-    public <T> ObservableTransformer<T, CacheResult<T>> transformObservable(final String key, final Type type, final IObservableStrategy strategy) {
+    public <T> ObservableTransformer<T, CacheResult<T>> transformObservable(final String key,
+                                                                            final Type type,
+                                                                            final IObservableStrategy strategy) {
         return new ObservableTransformer<T, CacheResult<T>>() {
             @Override
             public ObservableSource<CacheResult<T>> apply(Observable<T> tObservable) {
@@ -85,7 +90,21 @@ public final class RxCache {
         };
     }
 
-    public <T> FlowableTransformer<T, CacheResult<T>> transformFlowable(final String key, final Type type, final IFlowableStrategy strategy) {
+    public <T> SingleTransformer<T, CacheResult<T>> transformSingle(final String key,
+                                                                    final Type type,
+                                                                    final ISingleStrategy strategy) {
+        return new SingleTransformer<T, CacheResult<T>>(){
+
+            @Override
+            public SingleSource<CacheResult<T>> apply(Single<T> single) {
+                return strategy.single(RxCache.this, key, single, type);
+            }
+        };
+    }
+
+    public <T> FlowableTransformer<T, CacheResult<T>> transformFlowable(final String key,
+                                                                        final Type type,
+                                                                        final IFlowableStrategy strategy) {
         return new FlowableTransformer<T, CacheResult<T>>() {
             @Override
             public Publisher<CacheResult<T>> apply(Flowable<T> flowable) {
@@ -94,7 +113,6 @@ public final class RxCache {
         };
     }
 
-
     /**
      * 同步读取缓存
      * 会阻塞主线程，请在子线程调用
@@ -102,7 +120,6 @@ public final class RxCache {
     public <T> CacheResult<T> loadSync(final String key, final Type type) {
         return cacheCore.load(getMD5MessageDigest(key), type);
     }
-
 
     /**
      * 读取
@@ -116,7 +133,8 @@ public final class RxCache {
                     if (load != null) {
                         observableEmitter.onNext(load);
                         observableEmitter.onComplete();
-                    } else {
+                    }
+                    else {
                         observableEmitter.onError(new NullPointerException("Not find the key corresponding to the cache"));
                     }
                 }
@@ -140,7 +158,8 @@ public final class RxCache {
                     if (load != null) {
                         flowableEmitter.onNext(load);
                         flowableEmitter.onComplete();
-                    } else {
+                    }
+                    else {
                         flowableEmitter.onError(new NullPointerException("Not find the key corresponding to the cache"));
                     }
                 }
@@ -148,6 +167,26 @@ public final class RxCache {
         }, backpressureStrategy);
     }
 
+    /**
+     * 读取
+     */
+    public <T> Single<CacheResult<T>> load2Single(final String key, final Type type) {
+        return Single.create(new SingleOnSubscribe<CacheResult<T>>() {
+            @Override
+            public void subscribe(SingleEmitter<CacheResult<T>> singleEmitter) throws Exception {
+                CacheResult<T> load = cacheCore.load(getMD5MessageDigest(key), type);
+                if (!singleEmitter.isDisposed()) {
+                    if (load != null) {
+                        singleEmitter.onSuccess(load);
+                    }
+                    else {
+                        singleEmitter.onError(new NullPointerException("Not find the key corresponding to the cache"));
+                    }
+                }
+            }
+        });
+
+    }
 
     public <T> Observable<Boolean> save(final String key, final T value) {
         return save(key, value, CacheTarget.MemoryAndDisk);
@@ -179,7 +218,10 @@ public final class RxCache {
     /**
      * 保存
      */
-    public <T> Flowable<Boolean> save2Flowable(final String key, final T value, final CacheTarget target, BackpressureStrategy strategy) {
+    public <T> Flowable<Boolean> save2Flowable(final String key,
+                                               final T value,
+                                               final CacheTarget target,
+                                               BackpressureStrategy strategy) {
         return Flowable.create(new FlowableOnSubscribe<Boolean>() {
             @Override
             public void subscribe(FlowableEmitter<Boolean> flowableEmitter) throws Exception {
@@ -190,6 +232,21 @@ public final class RxCache {
                 }
             }
         }, strategy);
+    }
+
+    /**
+     * 保存
+     */
+    public <T> Single<Boolean> save2Single(final String key, final T value, final CacheTarget target) {
+        return Single.create(new SingleOnSubscribe<Boolean>() {
+            @Override
+            public void subscribe(SingleEmitter<Boolean> observableEmitter) throws Exception {
+                boolean save = cacheCore.save(getMD5MessageDigest(key), value, target);
+                if (!observableEmitter.isDisposed()) {
+                    observableEmitter.onSuccess(save);
+                }
+            }
+        });
     }
 
     /**
@@ -222,7 +279,8 @@ public final class RxCache {
                         observableEmitter.onNext(true);
                         observableEmitter.onComplete();
                     }
-                } catch (IOException e) {
+                }
+                catch (IOException e) {
                     LogUtils.log(e);
                     if (!observableEmitter.isDisposed()) {
                         observableEmitter.onError(e);
@@ -238,7 +296,6 @@ public final class RxCache {
     public void clear2() throws IOException {
         cacheCore.clear();
     }
-
 
     /**
      * 构造器
@@ -276,7 +333,6 @@ public final class RxCache {
             this.diskDir = directory;
             return this;
         }
-
 
         public Builder diskConverter(IDiskConverter converter) {
             this.diskConverter = converter;
@@ -334,7 +390,8 @@ public final class RxCache {
                 long available = ((long) statFs.getBlockCount()) * statFs.getBlockSize();
                 // Target 2% of the total space.
                 size = available / 50;
-            } catch (IllegalArgumentException ignored) {
+            }
+            catch (IllegalArgumentException ignored) {
                 LogUtils.log(ignored);
             }
             // Bound inside min/max size for disk cache.
@@ -357,7 +414,8 @@ public final class RxCache {
                 str[k++] = hexDigits[byte0 & 0xf];
             }
             return new String(str);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             LogUtils.log(e);
             return buffer;
         }

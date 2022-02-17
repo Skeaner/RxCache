@@ -11,6 +11,8 @@ import java.lang.reflect.Type;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
+import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 
 /**
@@ -30,7 +32,7 @@ public final class FirstCacheTimeoutStrategy implements IStrategy {
 
     /**
      * @param milliSecond 毫秒数
-     * @param isSync 是否用同步的方式保存缓存
+     * @param isSync      是否用同步的方式保存缓存
      */
     public FirstCacheTimeoutStrategy(long milliSecond, boolean isSync) {
         this.isSync = isSync;
@@ -49,7 +51,8 @@ public final class FirstCacheTimeoutStrategy implements IStrategy {
         Observable<CacheResult<T>> remote;
         if (isSync) {
             remote = RxCacheHelper.loadRemoteSync(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
+        }
+        else {
             remote = RxCacheHelper.loadRemote(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
         }
         return cache.switchIfEmpty(remote);
@@ -67,9 +70,31 @@ public final class FirstCacheTimeoutStrategy implements IStrategy {
         Flowable<CacheResult<T>> remote;
         if (isSync) {
             remote = RxCacheHelper.loadRemoteSyncFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
+        }
+        else {
             remote = RxCacheHelper.loadRemoteFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
         }
         return cache.switchIfEmpty(remote);
+    }
+
+    @Override
+    public <T> Single<CacheResult<T>> single(RxCache rxCache, String key, Single<T> source, Type type) {
+        Single<CacheResult<T>> cache = RxCacheHelper.loadCacheSingle(rxCache, key, type);
+        final Single<CacheResult<T>> remote;
+        if (isSync) {
+            remote = RxCacheHelper.loadRemoteSyncSingle(rxCache, key, source, CacheTarget.MemoryAndDisk);
+        }
+        else {
+            remote = RxCacheHelper.loadRemoteSingle(rxCache, key, source, CacheTarget.MemoryAndDisk);
+        }
+        return cache.flatMap(new Function<CacheResult<T>, Single<CacheResult<T>>>() {
+            @Override
+            public Single<CacheResult<T>> apply(CacheResult<T> result) throws Exception {
+                if (result.getData() == null || System.currentTimeMillis() - result.getTimestamp() > milliSecond) {
+                    return remote;
+                }
+                else return Single.just(result);
+            }
+        }).onErrorResumeNext(remote);
     }
 }

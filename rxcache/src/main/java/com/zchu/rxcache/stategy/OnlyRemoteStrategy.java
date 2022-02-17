@@ -11,7 +11,7 @@ import java.lang.reflect.Type;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
-
+import io.reactivex.Single;
 
 /**
  * 仅加载网络，但数据依然会被缓存
@@ -32,7 +32,8 @@ class OnlyRemoteStrategy implements IStrategy {
     public <T> Observable<CacheResult<T>> execute(RxCache rxCache, String key, Observable<T> source, Type type) {
         if (isSync) {
             return RxCacheHelper.loadRemoteSync(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
+        }
+        else {
             return RxCacheHelper.loadRemote(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
         }
     }
@@ -41,8 +42,19 @@ class OnlyRemoteStrategy implements IStrategy {
     public <T> Publisher<CacheResult<T>> flow(RxCache rxCache, String key, Flowable<T> source, Type type) {
         if (isSync) {
             return RxCacheHelper.loadRemoteSyncFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
+        }
+        else {
             return RxCacheHelper.loadRemoteFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
+        }
+    }
+
+    @Override
+    public <T> Single<CacheResult<T>> single(RxCache rxCache, String key, Single<T> source, Type type) {
+        if (isSync) {
+            return RxCacheHelper.loadRemoteSyncSingle(rxCache, key, source, CacheTarget.MemoryAndDisk);
+        }
+        else {
+            return RxCacheHelper.loadRemoteSingle(rxCache, key, source, CacheTarget.MemoryAndDisk);
         }
     }
 }

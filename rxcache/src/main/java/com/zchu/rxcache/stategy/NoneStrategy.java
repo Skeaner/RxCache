@@ -10,16 +10,16 @@ import java.lang.reflect.Type;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Function;
-
 
 /**
  * Created by Chu on 2017/6/24.
  * 仅加载网络，不缓存
  */
 
-public final class NoneStrategy implements IStrategy  {
+public final class NoneStrategy implements IStrategy {
 
     private NoneStrategy() {
     }
@@ -41,6 +41,16 @@ public final class NoneStrategy implements IStrategy  {
         return source.map(new Function<T, CacheResult<T>>() {
             @Override
             public CacheResult<T> apply(@NonNull T t) throws Exception {
+                return new CacheResult<>(ResultFrom.Remote, key, t);
+            }
+        });
+    }
+
+    @Override
+    public <T> Single<CacheResult<T>> single(RxCache rxCache, final String key, Single<T> source, Type type) {
+        return source.map(new Function<T, CacheResult<T>>() {
+            @Override
+            public CacheResult<T> apply(T t) throws Exception {
                 return new CacheResult<>(ResultFrom.Remote, key, t);
             }
         });

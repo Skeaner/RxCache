@@ -18,6 +18,7 @@ import com.zchu.rxcache.kotlin.rxCache
 import com.zchu.rxcache.stategy.CacheStrategy
 import com.zchu.rxcache.stategy.IStrategy
 import io.reactivex.Observer
+import io.reactivex.SingleObserver
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
@@ -28,7 +29,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-class MainActivity : AppCompatActivity(), View.OnClickListener {
+class SingleActivity : AppCompatActivity(), View.OnClickListener {
     private var serverAPI: ServerAPI? = null
     private var tvData: TextView? = null
     private var mSubscription: Disposable? = null
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 R.id.btn_save_cache
         )
         serverAPI = Retrofit.Builder()
-                .baseUrl(ServerAPI.BASE_URL)
+                .baseUrl(ServerAPI.BASE_URL2)
                 .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(OkHttpClient.Builder().build())
@@ -114,14 +115,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 loadData(CacheStrategy.none())
             R.id.btn_load_cache ->
                 RxCache.getDefault()
-                        .load<List<Movie.SubjectsBean>>("custom_key")
-                        .subscribe(object : Observer<CacheResult<List<Movie.SubjectsBean>>> {
+                        .load<JDRes>("custom_key")
+                        .subscribe(object : Observer<CacheResult<JDRes>> {
                             override fun onSubscribe(disposable: Disposable) {
                                 mSubscription = disposable
                             }
 
-                            override fun onNext(listCacheResult: CacheResult<List<Movie.SubjectsBean>>) {
-                                Log.e("Rxcache",listCacheResult.toString())
+                            override fun onNext(listCacheResult: CacheResult<JDRes>) {
+                                Log.e("Rxcache", listCacheResult.toString())
                                 val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                                         .format(Date(listCacheResult.timestamp))
                                 tvData!!.text = "来自缓存  写入时间：" + format + "\n " + listCacheResult.data
@@ -143,7 +144,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 RxCache.getDefault().save("custom_key", Arrays.asList(subjectsBean))
                         ?.subscribe()
 
-                Toast.makeText(this,"已写入测试数据",Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "已写入测试数据", Toast.LENGTH_SHORT).show()
             }
             R.id.btn_clean_cache -> {
                 RxCache.getDefault().clear().subscribe()
@@ -160,25 +161,24 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
         tvData!!.text = "加载中..."
         val startTime = System.currentTimeMillis()
-        serverAPI!!.inTheatersMovies
-                .map { it.subjects!! }
+        serverAPI!!.testSingle()
                 //泛型这样使用
                 .rxCache("custom_key", strategy)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(object : Observer<CacheResult<List<Movie.SubjectsBean>>> {
+                .subscribe(object : SingleObserver<CacheResult<JDRes>> {
                     override fun onSubscribe(disposable: Disposable) {
                         mSubscription = disposable
                     }
 
-                    override fun onNext(listCacheResult: CacheResult<List<Movie.SubjectsBean>>) {
-                        Log.e("Rxcache",listCacheResult.toString())
-                        if (ResultFrom.ifFromCache(listCacheResult.from)) {
+                    override fun onSuccess(result: CacheResult<JDRes>) {
+                        Log.e("Rxcache", result.toString())
+                        if (ResultFrom.ifFromCache(result.from)) {
                             val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                                    .format(Date(listCacheResult.timestamp))
-                            tvData!!.text = "来自缓存  写入时间：" + format + "\n " + listCacheResult.data
+                                    .format(Date(result.timestamp))
+                            tvData!!.text = "来自缓存  写入时间：" + format + "\n " + result.data
                         } else {
-                            tvData!!.text = "来自网络：\n " + listCacheResult.data + "\n 响应时间：" + (System.currentTimeMillis() - startTime) + "毫秒"
+                            tvData!!.text = "来自网络：\n " + result.data + "\n 响应时间：" + (System.currentTimeMillis() - startTime) + "毫秒"
                         }
                     }
 
@@ -186,9 +186,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                         tvData!!.text = throwable.message
                     }
 
-                    override fun onComplete() {
-
-                    }
                 })
     }
 

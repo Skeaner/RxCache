@@ -12,6 +12,9 @@ import java.util.Arrays;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
+import io.reactivex.SingleSource;
+import io.reactivex.functions.Function;
 
 /**
  * 优先网络
@@ -33,13 +36,12 @@ public final class FirstRemoteStrategy implements IStrategy {
         Observable<CacheResult<T>> cache = RxCacheHelper.loadCache(rxCache, key, type, true);
         Observable<CacheResult<T>> remote;
         if (isSync) {
-            remote =  RxCacheHelper.loadRemoteSync(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
-            remote =  RxCacheHelper.loadRemote(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
+            remote = RxCacheHelper.loadRemoteSync(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
         }
-        return Observable
-                .concatDelayError(Arrays.asList(remote,cache))
-                .take(1);
+        else {
+            remote = RxCacheHelper.loadRemote(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
+        }
+        return Observable.concatDelayError(Arrays.asList(remote, cache)).take(1);
     }
 
     @Override
@@ -47,14 +49,32 @@ public final class FirstRemoteStrategy implements IStrategy {
         Flowable<CacheResult<T>> cache = RxCacheHelper.loadCacheFlowable(rxCache, key, type, true);
         Flowable<CacheResult<T>> remote;
         if (isSync) {
-            remote =  RxCacheHelper.loadRemoteSyncFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
-        } else {
-            remote =RxCacheHelper.loadRemoteFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
+            remote = RxCacheHelper.loadRemoteSyncFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
         }
-        return Flowable
-                .concatDelayError(Arrays.asList(remote,cache))
-                .take(1);
+        else {
+            remote = RxCacheHelper.loadRemoteFlowable(rxCache, key, source, CacheTarget.MemoryAndDisk, false);
+        }
+        return Flowable.concatDelayError(Arrays.asList(remote, cache)).take(1);
     }
 
-
+    @Override
+    public <T> Single<CacheResult<T>> single(RxCache rxCache, String key, Single<T> source, Type type) {
+        final Single<CacheResult<T>> cache = RxCacheHelper.loadCacheSingle(rxCache, key, type);
+        final Single<CacheResult<T>> remote;
+        if (isSync) {
+            remote = RxCacheHelper.loadRemoteSyncSingle(rxCache, key, source, CacheTarget.MemoryAndDisk);
+        }
+        else {
+            remote = RxCacheHelper.loadRemoteSingle(rxCache, key, source, CacheTarget.MemoryAndDisk);
+        }
+        return remote.flatMap(new Function<CacheResult<T>, Single<CacheResult<T>>>() {
+            @Override
+            public Single<CacheResult<T>> apply(CacheResult<T> result) throws Exception {
+                if (result.getData() == null) {
+                    return cache;
+                }
+                else return Single.just(result);
+            }
+        }).onErrorResumeNext(cache);
+    }
 }

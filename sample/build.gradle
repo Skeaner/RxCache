@@ -39,7 +39,7 @@ dependencies {
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
     implementation 'com.squareup.okio:okio:1.15.0'
     implementation 'com.squareup.okhttp3:okhttp:3.12.0'
-    implementation 'com.zchu:zlog:1.0.1'
+//    implementation 'com.zchu:zlog:1.0.1'
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation project(':rxcache')

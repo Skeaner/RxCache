@@ -1,7 +1,16 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: "guru.stefma.bintrayrelease"
+apply plugin: 'com.github.dcendents.android-maven'
+group='com.github.Skeaner'
 
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+    }
+}
 android {
     compileSdkVersion 28
     lintOptions {
@@ -17,18 +26,3 @@ dependencies {
     compileOnly project(':rxcache')
 }
 
-version = "2.3.5"
-group = "com.zchu"
-androidArtifact { // 2
-    artifactId = "rxcache-kotlin"
-}
-
-publish {
-    userOrg = 'zchu'
-    desc = 'This is a cache library for android'
-    website = 'https://github.com/z-chu/RxCache'
-}
-repositories {
-    mavenCentral()
-}
-tasks.withType(Javadoc).all { enabled = false }

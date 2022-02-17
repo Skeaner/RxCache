@@ -10,7 +10,7 @@ import java.lang.reflect.Type;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
-
+import io.reactivex.Single;
 
 /**
  * 仅加载缓存
@@ -26,5 +26,10 @@ public final class OnlyCacheStrategy implements IStrategy  {
     @Override
     public <T> Publisher<CacheResult<T>> flow(RxCache rxCache, String key, Flowable<T> source, Type type) {
         return RxCacheHelper.loadCacheFlowable(rxCache, key, type,false);
+    }
+
+    @Override
+    public <T> Single<CacheResult<T>> single(RxCache rxCache, String key, Single<T> source, Type type) {
+        return RxCacheHelper.loadCacheSingle(rxCache, key, type);
     }
 }
